@@ -1,16 +1,17 @@
 from django.shortcuts import render, redirect
 from django.db import connection
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
+import os
 
 def home(request):
     search = request.GET.get('search', '')
     category_id = request.GET.get('category', '')
 
     with connection.cursor() as cursor:
-        # Fetch categories
         cursor.execute("SELECT id, name FROM inventory_category")
         categories = cursor.fetchall()
 
-        # Build dynamic SQL for product search/filter
         query = """
         SELECT p.id, p.name, p.brand, p.quantity,
                c.name AS category,
@@ -45,47 +46,74 @@ def home(request):
     })
 
 
+from django.shortcuts import render, redirect
+from django.db import connection
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
+import os
+
 def add_product(request):
     if request.method == 'POST':
+        # Get form data
         name = request.POST['name']
         brand = request.POST['brand']
         quantity = request.POST['quantity']
-        category_id = request.POST['category']
+        category_name = request.POST['category']  # Changed to category name
         supplier_name = request.POST['supplier_name']
-        supplier_contact = request.POST['supplier_contact']
+        supplier_phone = request.POST['supplier_phone']
+        supplier_email = request.POST['supplier_email']
+        image = request.FILES.get('image')
 
         try:
             with connection.cursor() as cursor:
-                # Try to find existing supplier
+                # Check if category exists
+                cursor.execute("SELECT id FROM inventory_category WHERE name = %s", [category_name])
+                category_result = cursor.fetchone()
+
+                # If category doesn't exist, insert it
+                if not category_result:
+                    cursor.execute(
+                        "INSERT INTO inventory_category (name) VALUES (%s)", [category_name]
+                    )
+                    cursor.execute("SELECT LAST_INSERT_ID()")
+                    category_id = cursor.fetchone()[0]
+                else:
+                    category_id = category_result[0]
+
+                # Check if supplier exists
                 cursor.execute("SELECT id FROM inventory_supplier WHERE name = %s", [supplier_name])
                 result = cursor.fetchone()
 
                 if result:
                     supplier_id = result[0]
                 else:
-                    # Insert new supplier with default values
                     cursor.execute(
                         "INSERT INTO inventory_supplier (name, phone, email, address) VALUES (%s, %s, %s, %s)",
-                        [supplier_name, supplier_contact, 'unknown@example.com', 'Unknown']
+                        [supplier_name, supplier_phone, supplier_email, 'Unknown']
                     )
                     cursor.execute("SELECT LAST_INSERT_ID()")
                     supplier_id = cursor.fetchone()[0]
 
-                # Insert the product
+                # Handle image saving
+                image_name = None
+                if image:
+                    fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'product_images'))
+                    image_name = fs.save(image.name, image)
+
+                # Insert product with image path
                 cursor.execute(
-                    "INSERT INTO inventory_product (name, brand, quantity, category_id, supplier_id, price) "
-                    "VALUES (%s, %s, %s, %s, %s, %s)",
-                    [name, brand, quantity, category_id, supplier_id, 0.00]
+                    "INSERT INTO inventory_product (name, brand, quantity, category_id, supplier_id, price, image) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    [name, brand, quantity, category_id, supplier_id, 0.00, f'product_images/{image_name}' if image_name else None]
                 )
 
-            return redirect('home')
+            return redirect('home')  # Redirect to home after successful insert
 
         except Exception as e:
-            # Handle error, e.g., log or show error message
             print(f"Error occurred: {e}")
-            return redirect('error_page')  # You can redirect to an error page or show a message
+            return redirect('home')
 
-    # For GET request, fetch categories
+    # GET request - show form for adding a new product
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name FROM inventory_category")
         categories = cursor.fetchall()
