@@ -1,0 +1,9 @@
+<!-- inventory/templates/inventory/edit_product.html -->
+
+<h2>✏️ Edit Product</h2>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Update</button>
+</form>

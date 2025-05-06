@@ -29,7 +29,8 @@ class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
     quantity = models.IntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    purchasing_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     image = models.ImageField(upload_to='product_images/', null=True, blank=True)  # ✅ ADD THIS
 
     class Meta:

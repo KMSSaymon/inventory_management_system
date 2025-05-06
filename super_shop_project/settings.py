@@ -58,8 +58,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'inventory' / 'templates',  # Make sure this path is correct
-        ],
+            BASE_DIR / 'inventory' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

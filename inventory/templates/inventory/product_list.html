@@ -1,0 +1,45 @@
+<!-- inventory/templates/inventory/product_list.html -->
+
+<h2>📦 All Products Overview</h2>
+
+<a href="{% url 'add_product' %}">➕ Add New Product</a><br><br>
+
+<table border="1">
+  <thead>
+    <tr>
+      <th>Image</th>
+      <th>Name</th>
+      <th>Brand</th>
+      <th>Category</th>
+      <th>Supplier</th>
+      <th>Quantity</th>
+      <th>Purchasing Price</th>
+      <th>Selling Price</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for product in products %}
+    <tr>
+      <td>
+        {% if product.image %}
+          <img src="{{ product.image.url }}" width="80" height="80">
+        {% else %}
+          No Image
+        {% endif %}
+      </td>
+      <td>{{ product.name }}</td>
+      <td>{{ product.brand }}</td>
+      <td>{{ product.category.name }}</td>
+      <td>{{ product.supplier.name }}</td>
+      <td>{{ product.quantity }}</td>
+      <td>৳{{ product.purchasing_price }}</td>
+      <td>৳{{ product.selling_price }}</td>
+      <td>
+        <a href="{% url 'edit_product' product.id %}">✏️ Edit</a> |
+        <a href="{% url 'delete_product' product.id %}">🗑️ Delete</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

@@ -1,8 +1,14 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render , get_object_or_404, redirect
+from .models import Product
 from django.db import connection
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from .forms import ProductForm
 import os
+
+def product_list(request):
+    products = Product.objects.all()
+    return render(request, 'inventory/product_list.html', {'products': products})
 
 def home(request):
     search = request.GET.get('search', '')
@@ -15,7 +21,8 @@ def home(request):
         query = """
         SELECT p.id, p.name, p.brand, p.quantity,
                c.name AS category,
-               s.name AS supplier
+               s.name AS supplier,
+               p.image
         FROM inventory_product p
         JOIN inventory_category c ON p.category_id = c.id
         JOIN inventory_supplier s ON p.supplier_id = s.id
@@ -35,7 +42,8 @@ def home(request):
         products = [
             {
                 'id': row[0], 'name': row[1], 'brand': row[2],
-                'quantity': row[3], 'category': row[4], 'supplier': row[5]
+                'quantity': row[3], 'category': row[4],
+                'supplier': row[5], 'image': row[6]
             }
             for row in cursor.fetchall()
         ]
@@ -46,19 +54,12 @@ def home(request):
     })
 
 
-from django.shortcuts import render, redirect
-from django.db import connection
-from django.core.files.storage import FileSystemStorage
-from django.conf import settings
-import os
-
 def add_product(request):
     if request.method == 'POST':
-        # Get form data
         name = request.POST['name']
         brand = request.POST['brand']
         quantity = request.POST['quantity']
-        category_name = request.POST['category']  # Changed to category name
+        category_name = request.POST['category']
         supplier_name = request.POST['supplier_name']
         supplier_phone = request.POST['supplier_phone']
         supplier_email = request.POST['supplier_email']
@@ -66,21 +67,16 @@ def add_product(request):
 
         try:
             with connection.cursor() as cursor:
-                # Check if category exists
                 cursor.execute("SELECT id FROM inventory_category WHERE name = %s", [category_name])
                 category_result = cursor.fetchone()
 
-                # If category doesn't exist, insert it
                 if not category_result:
-                    cursor.execute(
-                        "INSERT INTO inventory_category (name) VALUES (%s)", [category_name]
-                    )
+                    cursor.execute("INSERT INTO inventory_category (name) VALUES (%s)", [category_name])
                     cursor.execute("SELECT LAST_INSERT_ID()")
                     category_id = cursor.fetchone()[0]
                 else:
                     category_id = category_result[0]
 
-                # Check if supplier exists
                 cursor.execute("SELECT id FROM inventory_supplier WHERE name = %s", [supplier_name])
                 result = cursor.fetchone()
 
@@ -94,28 +90,43 @@ def add_product(request):
                     cursor.execute("SELECT LAST_INSERT_ID()")
                     supplier_id = cursor.fetchone()[0]
 
-                # Handle image saving
                 image_name = None
                 if image:
                     fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'product_images'))
                     image_name = fs.save(image.name, image)
 
-                # Insert product with image path
                 cursor.execute(
                     "INSERT INTO inventory_product (name, brand, quantity, category_id, supplier_id, price, image) "
                     "VALUES (%s, %s, %s, %s, %s, %s, %s)",
                     [name, brand, quantity, category_id, supplier_id, 0.00, f'product_images/{image_name}' if image_name else None]
                 )
 
-            return redirect('home')  # Redirect to home after successful insert
+            return redirect('home')
 
         except Exception as e:
             print(f"Error occurred: {e}")
             return redirect('home')
 
-    # GET request - show form for adding a new product
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name FROM inventory_category")
         categories = cursor.fetchall()
 
     return render(request, 'inventory/add_product.html', {'categories': categories})
+
+def edit_product(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            form.save()
+            return redirect('product_list')
+    else:
+        form = ProductForm(instance=product)
+    return render(request, 'inventory/edit_product.html', {'form': form})
+
+def delete_product(request, pk):
+    product = get_object_or_404(Product, pk=pk)
+    if request.method == 'POST':
+        product.delete()
+        return redirect('product_list')
+    return render(request, 'inventory/delete_product.html', {'product': product})
