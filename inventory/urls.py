@@ -1,4 +1,5 @@
 from django.urls import path
+from .views import create_purchase_order
 from . import views
 
 urlpatterns = [
@@ -15,4 +16,7 @@ urlpatterns = [
 
     # Delete Product
     path('products/delete/<int:pk>/', views.delete_product, name='delete_product'),
+
+    path('purchase/create/', views.create_purchase_order, name='create_purchase_order'),
+    path('purchase/success/<int:order_id>/', views.purchase_success, name='purchase_success'),
 ]

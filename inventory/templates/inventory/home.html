@@ -58,7 +58,13 @@
                     <span class="text-muted">Qty:</span> {{ product.quantity }}<br>
                     <span class="text-muted">Category:</span> {{ product.category }}<br>
                     <span class="text-muted">Supplier:</span> {{ product.supplier }}<br>
-                    <span class="text-muted">Price:</span> ${{ product.price }}
+                    <span class="text-muted">Price:</span> ৳{{ product.price }}<br>
+                    {% if product.quantity == 0 %}
+                    <span style="color: red; font-weight: bold;">🟥 Out of Stock</span>
+                    {% else %}
+                    <span style="color: green; font-weight: bold;">🟩 In Stock ({{ product.quantity_in_stock }})</span>
+                    {% endif %}
+
                 </p>
             </div>
         </div>

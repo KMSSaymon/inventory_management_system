@@ -4,6 +4,8 @@ from django.db import connection
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from .forms import ProductForm
+from .forms import PurchaseOrderForm
+from .models import Product, PurchaseOrder
 import os
 
 def product_list(request):
@@ -132,3 +134,25 @@ def delete_product(request, pk):
         product.delete()
         return redirect('product_list')
     return render(request, 'inventory/delete_product.html', {'product': product})
+
+def create_purchase_order(request):
+    if request.method == 'POST':
+        form = PurchaseOrderForm(request.POST)
+        if form.is_valid():
+            # Save the purchase order and get the instance
+            order = form.save()
+
+            # Redirect to the success page with the order's id
+            return redirect('purchase_success', order_id=order.id)  # Passing the order_id here
+
+    else:
+        form = PurchaseOrderForm()
+
+    return render(request, 'purchase/create.html', {'form': form})
+
+def purchase_success(request, order_id):
+    # Retrieve the PurchaseOrder object using the order_id
+    order = PurchaseOrder.objects.get(id=order_id)
+
+    # Render the success page and pass the order details
+    return render(request, 'purchase/success.html', {'order': order})
