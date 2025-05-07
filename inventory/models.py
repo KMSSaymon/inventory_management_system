@@ -32,6 +32,7 @@ class Product(models.Model):
     purchasing_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     image = models.ImageField(upload_to='product_images/', null=True, blank=True)  # ✅ ADD THIS
+    stock = models.PositiveIntegerField(default=0)  # ✅ This line must exist
 
     class Meta:
         db_table = 'inventory_product'
@@ -80,3 +81,21 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f"{self.customer.name} - {self.product.name}"
+    
+class Sale(models.Model):
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Sale #{self.id} - {self.customer.name}"
+
+
+class SaleDetail(models.Model):
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE)
+    product = models.ForeignKey('Product', on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)  # Unit price at time of sale
+
+    def __str__(self):
+        return f"{self.product.name} x {self.quantity} (Sale #{self.sale.id})"
+

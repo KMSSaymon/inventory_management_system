@@ -22,7 +22,8 @@ def home(request):
         SELECT p.id, p.name, p.brand, p.quantity,
                c.name AS category,
                s.name AS supplier,
-               p.image
+               p.image,
+               p.selling_price AS price
         FROM inventory_product p
         JOIN inventory_category c ON p.category_id = c.id
         JOIN inventory_supplier s ON p.supplier_id = s.id
@@ -43,7 +44,8 @@ def home(request):
             {
                 'id': row[0], 'name': row[1], 'brand': row[2],
                 'quantity': row[3], 'category': row[4],
-                'supplier': row[5], 'image': row[6]
+                'supplier': row[5], 'image': row[6], 'price': row[7]
+
             }
             for row in cursor.fetchall()
         ]
