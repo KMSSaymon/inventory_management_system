@@ -1,0 +1,11 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<h2>Purchase Order Submitted Successfully!</h2>
+<p>Order ID: {{ order.id }}</p>
+<p>Supplier: {{ order.supplier.name }}</p>
+<p>Date: {{ order.date }}</p>
+<p>Status: {{ order.status }}</p>
+
+<a href="{% url 'create_purchase_order' %}">Create another purchase order</a>
+{% endblock %}
