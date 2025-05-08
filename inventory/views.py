@@ -1,4 +1,4 @@
-from django.shortcuts import render , get_object_or_404, redirect
+from django.shortcuts import render , redirect , get_object_or_404
 from .models import Product
 from django.db import connection
 from django.core.files.storage import FileSystemStorage
@@ -210,5 +210,9 @@ def delete_customer(request, pk):
         customer.delete()
         return redirect('customer_list')
     return render(request, 'inventory/delete_customer.html', {'customer': customer})
+
+def customer_view(request):
+    return render(request, 'inventory/customer.html')
+
 
 
