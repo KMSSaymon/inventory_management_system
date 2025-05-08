@@ -25,6 +25,7 @@ class Supplier(models.Model):
 
 
 class Product(models.Model):
+    product_id = models.ForeignKey('Product', on_delete=models.CASCADE, default=1) 
     name = models.CharField(max_length=100)
     brand = models.CharField(max_length=100)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
@@ -61,14 +62,13 @@ class Employee(models.Model):
 class Customer(models.Model):
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20)
-    email = models.EmailField()
-    address = models.TextField()
 
     class Meta:
-        db_table = 'inventory_customer'  # Specify the exact table name in the database
+        db_table = 'inventory_customer'  # Keep the table name consistent
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.phone})"
+
 
 
 class Purchase(models.Model):
@@ -110,4 +110,14 @@ class PurchaseOrder(models.Model):
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity} from {self.supplier}"
+    
+class CustomerOrder(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    order_date = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.customer.name} ordered {self.product.name} ({self.quantity})"
+
 

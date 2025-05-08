@@ -6,6 +6,9 @@ from django.conf import settings
 from .forms import ProductForm
 from .forms import PurchaseOrderForm
 from .models import Product, PurchaseOrder
+from .models import CustomerOrder
+from .forms import CustomerOrderForm
+from .models import Customer
 import os
 
 def product_list(request):
@@ -156,3 +159,56 @@ def purchase_success(request, order_id):
 
     # Render the success page and pass the order details
     return render(request, 'purchase/success.html', {'order': order})
+
+def create_customer_order(request):
+    if request.method == 'POST':
+        form = CustomerOrderForm(request.POST)
+        if form.is_valid():
+            order = form.save()
+
+            # update stock (reduce product quantity)
+            order.product.quantity -= order.quantity
+            order.product.save()
+
+            return redirect('customer_order_list')
+    else:
+        form = CustomerOrderForm()
+    return render(request, 'inventory/create_customer_order.html', {'form': form})
+
+def customer_order_list(request):
+    orders = CustomerOrder.objects.select_related('customer', 'product').all().order_by('-order_date')
+    return render(request, 'inventory/customer_order_list.html', {'orders': orders})
+
+def add_customer(request):
+    if request.method == 'POST':
+        form = CustomerForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('customer_list')
+    else:
+        form = CustomerForm()
+    return render(request, 'inventory/add_customer.html', {'form': form})
+
+def customer_list(request):
+    customers = Customer.objects.all()
+    return render(request, 'inventory/customer_list.html', {'customers': customers})
+
+def edit_customer(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+    if request.method == 'POST':
+        form = CustomerForm(request.POST, instance=customer)
+        if form.is_valid():
+            form.save()
+            return redirect('customer_list')
+    else:
+        form = CustomerForm(instance=customer)
+    return render(request, 'inventory/edit_customer.html', {'form': form})
+
+def delete_customer(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+    if request.method == 'POST':
+        customer.delete()
+        return redirect('customer_list')
+    return render(request, 'inventory/delete_customer.html', {'customer': customer})
+
+

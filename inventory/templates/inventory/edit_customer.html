@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Customer</title>
+</head>
+<body>
+    <h2>Edit Customer</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Update Customer</button>
+    </form>
+    <a href="{% url 'customer_list' %}">Back to Customer List</a>
+</body>
+</html>
