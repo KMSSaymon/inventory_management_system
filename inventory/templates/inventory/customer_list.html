@@ -1,15 +1,22 @@
+{% extends 'inventory/base.html' %}
+{% block content %}
 <h2>Customer List</h2>
-<a href="{% url 'add_customer' %}">+ Add New</a>
+<a href="{% url 'add_customer' %}">Add New Customer</a>
 <table>
-  <tr><th>Name</th><th>Phone</th><th>Actions</th></tr>
-  {% for customer in customers %}
-  <tr>
-    <td>{{ customer.name }}</td>
-    <td>{{ customer.phone }}</td>
-    <td>
-      <a href="{% url 'edit_customer' customer.id %}">Edit</a>
-      <a href="{% url 'delete_customer' customer.id %}">Delete</a>
-    </td>
-  </tr>
-  {% endfor %}
+    <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Actions</th>
+    </tr>
+    {% for customer in customers %}
+    <tr>
+        <td>{{ customer.name }}</td>
+        <td>{{ customer.phone }}</td>
+        <td>
+            <a href="{% url 'edit_customer' customer.id %}">Edit</a> |
+            <a href="{% url 'delete_customer' customer.id %}">Delete</a>
+        </td>
+    </tr>
+    {% endfor %}
 </table>
+{% endblock %}

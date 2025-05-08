@@ -1,15 +1,18 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Edit Customer</title>
-</head>
-<body>
-    <h2>Edit Customer</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Update Customer</button>
-    </form>
-    <a href="{% url 'customer_list' %}">Back to Customer List</a>
-</body>
-</html>
+{% extends "inventory/base.html" %}
+
+{% block content %}
+<h2>Edit Customer</h2>
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="id_name" class="form-label">Name</label>
+        {{ form.name }}
+    </div>
+    <div class="mb-3">
+        <label for="id_phone" class="form-label">Phone</label>
+        {{ form.phone }}
+    </div>
+    <button type="submit" class="btn btn-success">Update</button>
+    <a href="{% url 'customer_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

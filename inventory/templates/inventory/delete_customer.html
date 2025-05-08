@@ -1,15 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Delete Customer</title>
-</head>
-<body>
-    <h2>Delete Customer</h2>
-    <p>Are you sure you want to delete "{{ customer.name }}"?</p>
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit">Yes, Delete</button>
-        <a href="{% url 'customer_list' %}">Cancel</a>
-    </form>
-</body>
-</html>
+{% extends "inventory/base.html" %}
+
+{% block content %}
+<h2>Delete Customer</h2>
+<p>Are you sure you want to delete customer "{{ customer.name }}"?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a href="{% url 'customer_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

@@ -25,7 +25,7 @@ class Supplier(models.Model):
 
 
 class Product(models.Model):
-    product_id = models.ForeignKey('Product', on_delete=models.CASCADE, default=1) 
+    
     name = models.CharField(max_length=100)
     brand = models.CharField(max_length=100)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)

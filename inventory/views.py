@@ -202,7 +202,7 @@ def edit_customer(request, pk):
             return redirect('customer_list')
     else:
         form = CustomerForm(instance=customer)
-    return render(request, 'inventory/edit_customer.html', {'form': form})
+    return render(request, 'inventory/edit_customer.html', {'form': form, 'customer': customer})
 
 def delete_customer(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
