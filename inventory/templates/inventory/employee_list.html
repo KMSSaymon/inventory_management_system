@@ -1,0 +1,17 @@
+<!-- templates/inventory/employee_list.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee List</title>
+</head>
+<body>
+    <h1>Employees</h1>
+    <ul>
+    {% for employee in employees %}
+        <li>{{ employee.name }} - {{ employee.role }}</li>
+    {% empty %}
+        <li>No employees found.</li>
+    {% endfor %}
+    </ul>
+</body>
+</html>

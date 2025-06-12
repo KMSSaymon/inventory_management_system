@@ -84,7 +84,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'super_shop',
         'USER': 'root',
-        'PASSWORD': '',  # Default XAMPP password is empty
+        'PASSWORD': '',  
         'HOST': '127.0.0.1',
         'PORT': '3306',
     }
@@ -136,3 +136,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# settings.py
+
+LOGOUT_REDIRECT_URL = 'login'  # This should match the name used in your `urls.py` for login
+
+AUTH_USER_MODEL = 'inventory.CustomUser'
+
+LOGIN_REDIRECT_URL = 'profile'
+
