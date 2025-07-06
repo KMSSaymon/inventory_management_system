@@ -142,3 +142,8 @@ AUTH_USER_MODEL = 'inventory.CustomUser'
 
 LOGIN_REDIRECT_URL = 'profile'
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://inventory-management-system-t80c.onrender.com"
+]
+
+
