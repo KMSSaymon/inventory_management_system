@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
-    Product, Category, Customer, Employee, Sale,
-    SaleDetail, Supplier, PurchaseOrder, PartTimeWorkLog
+    Product, Category, Customer, Employee,
+    Supplier, PurchaseOrder, PartTimeWorkLog
 )
 
 class ProductAdmin(admin.ModelAdmin):
@@ -12,8 +12,6 @@ class ProductAdmin(admin.ModelAdmin):
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Category)
 admin.site.register(Customer)
-admin.site.register(Sale)
-admin.site.register(SaleDetail)
 admin.site.register(Supplier)
 admin.site.register(PurchaseOrder)
 

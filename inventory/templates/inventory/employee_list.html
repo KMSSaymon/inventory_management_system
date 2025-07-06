@@ -1,17 +1,36 @@
-<!-- templates/inventory/employee_list.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Employee List</title>
-</head>
-<body>
-    <h1>Employees</h1>
-    <ul>
-    {% for employee in employees %}
-        <li>{{ employee.name }} - {{ employee.role }}</li>
-    {% empty %}
-        <li>No employees found.</li>
-    {% endfor %}
-    </ul>
-</body>
-</html>
+{% extends 'inventory/base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>👨‍💼 Employee List</h2>
+    <a href="{% url 'employee_add' %}" class="btn btn-primary mb-3">➕ Add Employee</a>
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Role</th>
+                <th>Type</th>
+                <th>Shift</th>
+                <th>Monthly Salary</th>
+                <th>Hourly Wage</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>{{ emp.name }}</td>
+                <td>{{ emp.get_role_display }}</td>
+                <td>{{ emp.get_employee_type_display }}</td>
+                <td>{{ emp.get_shift_display }}</td>
+                <td>{{ emp.monthly_salary }}</td>
+                <td>{{ emp.hourly_wage }}</td>
+                <td>
+                    <a href="{% url 'employee_edit' emp.id %}" class="btn btn-sm btn-info">Edit</a>
+                    <a href="{% url 'employee_delete' emp.id %}" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

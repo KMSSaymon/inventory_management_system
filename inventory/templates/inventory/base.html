@@ -27,12 +27,15 @@
                      <li class="nav-item"><a class="nav-link" href="{% url 'purchase_order_list' %}">Purchase Orders</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'create_purchase_order' %}"> Create Purchase Order</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'product_list' %}">📦 Products</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-people-fill"></i> Customer</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-person-badge"></i> Employee</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-graph-up-arrow"></i> Sales Report</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'customer_list' %}"><i class="bi bi-people-fill"></i> Customer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'employee_list' %}"><i class="bi bi-person-badge"></i> Employee</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'create_sell' %}"><i class="bi bi-cart-check"></i> Create Sell</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'sells_report' %}"><i class="bi bi-graph-up-arrow"></i> Sells Report</a></li>
                 {% elif user.role == 'staff' %}
                     <!-- Staff has limited access -->
                     <li class="nav-item"><a class="nav-link" href="{% url 'product_list' %}">📦 Products</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'customer_list' %}"><i class="bi bi-people-fill"></i> Customer</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'create_sell' %}"><i class="bi bi-cart-check"></i> Create Sell</a></li>
                 {% endif %}
                 
                 <!-- Common to both roles -->

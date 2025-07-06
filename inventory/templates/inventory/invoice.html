@@ -1,0 +1,60 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Invoice{% endblock %}
+
+{% block content %}
+<div class="container bg-white p-4 rounded shadow">
+    <div class="text-center mb-4">
+        <h2>🧾 Invoice</h2>
+        <p class="text-muted">Thank you for shopping with us!</p>
+    </div>
+
+    <!-- Invoice Info -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h5>🧍 Customer Info</h5>
+            <p><strong>Name:</strong> {{ sell.customer.name }}</p>
+            <p><strong>Phone:</strong> {{ sell.customer.phone }}</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <h5>🕒 Invoice Details</h5>
+            <p><strong>Invoice ID:</strong> #{{ sell.id }}</p>
+            <p><strong>Date:</strong> {{ sell.sell_date|date:"d M Y, h:i A" }}</p>
+        </div>
+    </div>
+
+    <!-- Product Table -->
+    <table class="table table-bordered text-center">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sell.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.price_per_unit }}</td>
+                <td>{{ item.subtotal }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="text-end">
+        <p><strong>Discount:</strong> {{ sell.discount_amount }}</p>
+        <h4><strong>Total:</strong> {{ sell.total_price }}</h4>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{% url 'create_sell' %}" class="btn btn-success">+ New Sell</a>
+        <button class="btn btn-outline-primary" onclick="window.print()">🖨️ Print Invoice</button>
+    </div>
+</div>
+{% endblock %}

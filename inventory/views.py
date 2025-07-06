@@ -9,10 +9,19 @@ from django.contrib import messages
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse
+from .forms import ProductForm
 import logging
 import os
+import traceback
 
-from .models import Product, PurchaseOrder, PurchaseOrderDetail, Supplier, Category, CustomerOrder, Customer, Employee
+from django.db.models import Q, Sum
+from datetime import datetime
+
+from .forms import EmployeeForm
+from .models import Employee
+from django.contrib.auth.decorators import user_passes_test
+from django.utils import timezone
+from .models import Product, PurchaseOrder, PurchaseOrderDetail, Supplier, Category, CustomerOrder, Customer, Employee,Sell, SellItem
 from .forms import PurchaseOrderDetailForm, SupplierForm, CustomUserCreationForm
 
 logger = logging.getLogger(__name__)
@@ -187,100 +196,94 @@ def delete_product(request, pk):
 
 @login_required
 def create_purchase_order(request):
+    print("✅ Starting create_purchase_order view")
+    print("User:", request.user, "Authenticated:", request.user.is_authenticated)
+
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                # Log the start of the transaction
-                logger.info("Starting transaction for creating purchase order")
+                print("✅ Inside transaction block")
 
-                # Handle Supplier
+                # 1️⃣ Supplier data
                 supplier_name = request.POST.get('supplier_name')
                 supplier_phone = request.POST.get('supplier_phone')
                 supplier_email = request.POST.get('supplier_email')
                 supplier_address = request.POST.get('supplier_address')
+                print("✅ Supplier data collected")
 
-                supplier, created = Supplier.objects.get_or_create(
+                supplier = Supplier.objects.filter(
                     name=supplier_name,
-                    defaults={
-                        'phone': supplier_phone,
-                        'email': supplier_email,
-                        'address': supplier_address
-                    }
-                )
+                    phone=supplier_phone,
+                    email=supplier_email,
+                    address=supplier_address
+                ).first()
 
-                # Log supplier creation or retrieval
-                logger.info(f"Supplier: {supplier.name} {'created' if created else 'retrieved'}")
+                if not supplier:
+                    supplier = Supplier.objects.create(
+                        name=supplier_name,
+                        phone=supplier_phone,
+                        email=supplier_email,
+                        address=supplier_address
+                    )
 
-                # Create Purchase Order
+
+                print(f"✅ Supplier object ready: {supplier.name}")
+
+                if request.user.role not in ['manager', 'owner']:
+                    print("❌ Unauthorized user role:", request.user.role)
+                    messages.error(request, 'You do not have permission to create a purchase order.')
+                    return redirect('home')
+
+                # 2️⃣ Create Purchase Order
                 purchase_order = PurchaseOrder.objects.create(
                     supplier=supplier,
-                    ordered_by=request.user
+                    ordered_by=request.user,
+                    status='Pending'
                 )
+                print(f"✅ PurchaseOrder created: ID = {purchase_order.id}")
 
-                # Log purchase order creation
-                logger.info(f"Purchase Order created with ID: {purchase_order.id}")
-
-                # Handle Product
+                # 3️⃣ Product data (store in detail only)
                 product_name = request.POST.get('product_name')
                 brand = request.POST.get('brand')
                 category_name = request.POST.get('category')
+                unit_size = request.POST.get('unit_size')
                 quantity = int(request.POST.get('quantity'))
                 purchasing_price = float(request.POST.get('purchasing_price'))
+                selling_price = float(request.POST.get('selling_price', 0.0))
+                image = request.FILES.get('image')
 
-                # Handle category
                 category, _ = Category.objects.get_or_create(name=category_name)
 
-                # Handle product
-                product, product_created = Product.objects.get_or_create(
-                    name=product_name,
-                    defaults={
-                        'brand': brand,
-                        'category': category,
-                        'supplier': supplier,
-                        'quantity': quantity,
-                        'purchasing_price': purchasing_price,
-                        'stock': quantity
-                    }
-                )
-
-                # Log product creation or retrieval
-                logger.info(f"Product: {product.name} {'created' if product_created else 'retrieved'}")
-
-                # If product already exists, update stock & price
-                if not product_created:
-                    product.quantity += quantity
-                    product.stock += quantity
-                    product.purchasing_price = purchasing_price
-                    product.save()
-                    logger.info(f"Product updated: {product.name}")
-
-                # Create PurchaseOrderDetail
-                purchase_order_detail = PurchaseOrderDetail.objects.create(
+                PurchaseOrderDetail.objects.create(
                     order=purchase_order,
-                    product=product,
+                    product=None,
+                    product_name=product_name,
                     quantity=quantity,
-                    price_per_unit=purchasing_price
+                    price_per_unit=purchasing_price,
+                    brand=brand,
+                    category_name=category.name,
+                    unit_size=unit_size,
+                    selling_price=selling_price,
+                    image=image
                 )
 
-                # Log purchase order detail creation
-                logger.info(f"Purchase Order Detail created with ID: {purchase_order_detail.id}")
+                print("✅ PurchaseOrderDetail created without affecting stock")
 
-                # Redirect to success page
                 messages.success(request, 'Purchase order created successfully!')
                 return redirect('purchase_order_success', order_id=purchase_order.id)
 
         except Exception as e:
-            # Log the error
-            logger.error(f"Error occurred: {str(e)}")
-            messages.error(request, f'Error occurred: {str(e)}')
-            # Redirect back to the form page with error message
+            print("❌ Error while creating purchase order:", e)
+            traceback.print_exc()
+            messages.error(request, f"Error occurred: {str(e)}")
             return redirect('create_purchase_order')
 
-    # GET Request — render the form
+    # GET form render
+    print("➡ Rendering GET form")
     suppliers = Supplier.objects.all()
     products = Product.objects.all()
     brands = Product.objects.values_list('brand', flat=True).distinct()
-    categories = Category.objects.values_list('id', 'name')
+    categories = Category.objects.values_list('name', flat=True)
 
     return render(request, 'purchase/create.html', {
         'suppliers': suppliers,
@@ -327,3 +330,213 @@ def create_supplier(request):
     else:
         logger.error(f"Form errors: {form.errors}")
         return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+
+@login_required
+def mark_order_arrived(request, order_id):
+    order = get_object_or_404(PurchaseOrder, id=order_id)
+
+    if order.status != 'Arrived':
+        for detail in order.details.all():
+            supplier = order.supplier
+            quantity = detail.quantity
+            price = detail.price_per_unit
+
+            # Extract extra info from detail
+            product_name = detail.product_name
+            brand = detail.brand
+            category_name = detail.category_name
+            unit_size = detail.unit_size or "N/A"
+            selling_price = detail.selling_price or 0.0
+            image = detail.image
+
+            # Get or create category
+            category, _ = Category.objects.get_or_create(name=category_name)
+
+            # Try to find existing product
+            product = Product.objects.filter(
+                name=product_name,
+                brand=brand,
+                category=category,
+                supplier=supplier
+            ).first()
+
+            if product:
+                product.quantity += quantity
+                product.stock += quantity
+                product.save()
+            else:
+                product = Product.objects.create(
+                    name=product_name,
+                    brand=brand,
+                    category=category,
+                    supplier=supplier,
+                    quantity=quantity,
+                    stock=quantity,
+                    purchasing_price=price,
+                    selling_price=selling_price,
+                    unit_size=unit_size,
+                    image=image
+                )
+
+            if not detail.product:
+                detail.product = product
+                detail.save()
+
+        order.status = 'Arrived'
+        order.save()
+
+    return redirect('purchase_order_list')
+
+@login_required
+def delete_product(request, pk):
+    product = get_object_or_404(Product, id=pk)
+
+    if request.method == 'POST':
+        product.delete()
+        messages.success(request, 'Product deleted successfully.')
+        return redirect('product_list')  # change this if your product list view has a different name
+
+    return render(request, 'inventory/delete_product.html', {'product': product})
+
+
+def manager_or_owner(user):
+    return user.is_authenticated and user.role in ['manager', 'owner']
+
+@login_required
+def employee_list(request):
+    employees = Employee.objects.all()
+    return render(request, 'inventory/employee_list.html', {'employees': employees})
+
+@login_required
+@user_passes_test(manager_or_owner)
+def employee_add(request):
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Employee added successfully!')
+            return redirect('employee_list')
+    else:
+        form = EmployeeForm()
+    return render(request, 'inventory/employee_form.html', {'form': form, 'title': 'Add Employee'})
+
+@login_required
+@user_passes_test(manager_or_owner)
+def employee_edit(request, pk):
+    employee = get_object_or_404(Employee, pk=pk)
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST, instance=employee)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Employee updated successfully!')
+            return redirect('employee_list')
+    else:
+        form = EmployeeForm(instance=employee)
+    return render(request, 'inventory/employee_form.html', {'form': form, 'title': 'Edit Employee'})
+
+@login_required
+@user_passes_test(manager_or_owner)
+def employee_delete(request, pk):
+    employee = get_object_or_404(Employee, pk=pk)
+    if request.method == 'POST':
+        employee.delete()
+        messages.success(request, 'Employee deleted successfully!')
+        return redirect('employee_list')
+    return render(request, 'inventory/employee_confirm_delete.html', {'employee': employee})
+
+
+@transaction.atomic
+def create_sell(request):
+    if request.method == 'POST':
+        customer_name = request.POST.get('customer_name')
+        customer_phone = request.POST.get('customer_phone')
+
+        # 🔥 Check if customer already exists
+        customer, created = Customer.objects.get_or_create(
+            phone=customer_phone,
+            defaults={'name': customer_name}
+        )
+
+        discount = float(request.POST.get('discount', 0))
+        total_price = float(request.POST.get('total_price', 0))
+
+        sell = Sell.objects.create(
+            customer=customer,
+            discount_amount=discount,
+            total_price=total_price,
+        )
+
+        # Get all items
+        product_ids = request.POST.getlist('product_id[]')
+        quantities = request.POST.getlist('quantity[]')
+        unit_prices = request.POST.getlist('unit_price[]')
+
+        for i in range(len(product_ids)):
+            product_id = product_ids[i]
+            quantity = int(quantities[i])
+            unit_price = float(unit_prices[i])
+
+            product = Product.objects.get(id=product_id)
+            SellItem.objects.create(
+                sell=sell,
+                product=product,
+                quantity=quantity,
+                price_per_unit=unit_price
+            )
+
+            # 🔁 Update stock
+            product.stock -= quantity
+            product.save()
+
+        return redirect('invoice', sell_id=sell.id)
+    
+    # GET request
+    products = Product.objects.all()
+    return render(request, 'inventory/create_sell.html', {'products': products})
+
+
+
+def sells_report(request):
+    sells = Sell.objects.all().order_by('-sell_date')
+
+    # Filters
+    customer_query = request.GET.get('customer', '')
+    product_query = request.GET.get('product', '')
+    date_from = request.GET.get('from')
+    date_to = request.GET.get('to')
+
+    if customer_query:
+        sells = sells.filter(Q(customer__name__icontains=customer_query) | Q(customer__phone__icontains=customer_query))
+
+    if product_query:
+        sells = sells.filter(items__product__name__icontains=product_query).distinct()
+
+    if date_from:
+        sells = sells.filter(sell_date__date__gte=date_from)
+    if date_to:
+        sells = sells.filter(sell_date__date__lte=date_to)
+
+    total_revenue = sells.aggregate(Sum('total_price'))['total_price__sum'] or 0
+    total_discount = sells.aggregate(Sum('discount_amount'))['discount_amount__sum'] or 0
+
+    return render(request, 'inventory/sells_report.html', {
+        'sells': sells,
+        'total_revenue': total_revenue,
+        'total_discount': total_discount
+    })
+
+def invoice_view(request, sell_id):
+    sell = Sell.objects.get(id=sell_id)
+    return render(request, 'inventory/invoice.html', {'sell': sell})
+
+
+def customer_list(request):
+    customers = Customer.objects.all().order_by('-id')
+    return render(request, 'inventory/customer_list.html', {'customers': customers})
+
+
+
+
+    
+

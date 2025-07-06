@@ -1,0 +1,68 @@
+{% extends 'inventory/base.html' %}
+{% block title %}Sells Report{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">📊 Sells Report</h2>
+
+<!-- Filters -->
+<form method="get" class="row g-2 mb-4">
+    <div class="col-md-3">
+        <input type="text" name="customer" value="{{ request.GET.customer }}" class="form-control" placeholder="Search by customer name or phone">
+    </div>
+    <div class="col-md-3">
+        <input type="text" name="product" value="{{ request.GET.product }}" class="form-control" placeholder="Search by product name">
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="from" value="{{ request.GET.from }}" class="form-control" placeholder="From">
+    </div>
+    <div class="col-md-2">
+        <input type="date" name="to" value="{{ request.GET.to }}" class="form-control" placeholder="To">
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Filter</button>
+    </div>
+</form>
+
+<!-- Summary -->
+<div class="alert alert-info">
+    <strong>Total Sells:</strong> {{ sells.count }} |
+    <strong>Total Revenue:</strong> ৳{{ total_revenue }} |
+    <strong>Total Discount:</strong> ৳{{ total_discount }}
+</div>
+
+<!-- Table -->
+<table class="table table-bordered table-striped text-center">
+    <thead class="table-light">
+        <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Items</th>
+            <th>Total</th>
+            <th>Discount</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sell in sells %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ sell.sell_date|date:"d M Y h:i A" }}</td>
+            <td>{{ sell.customer.name }}<br><small>{{ sell.customer.phone }}</small></td>
+            <td>
+                <ul class="list-unstyled">
+                    {% for item in sell.items.all %}
+                    <li>{{ item.product.name }} x{{ item.quantity }}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+            <td>৳{{ sell.total_price }}</td>
+            <td>৳{{ sell.discount_amount }}</td>
+            <td><a href="{% url 'invoice' sell.id %}" class="btn btn-sm btn-outline-primary">View Invoice</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">No sells found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

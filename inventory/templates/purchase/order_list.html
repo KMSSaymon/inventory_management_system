@@ -9,6 +9,7 @@
                 <th>ID</th>
                 <th>Supplier</th>
                 <th>Date</th>
+                <th>Products</th>
                 <th>Quantity</th>
                 <th>Status</th>
             </tr>
@@ -18,13 +19,32 @@
             <tr>
                 <td>{{ order.id }}</td>
                 <td>{{ order.supplier.name }}</td>
-                <td>{{ order.date }}</td>
-                <td>{{ order.quantity }}</td>
-                <td>{{ order.status }}</td>
+                <td>{{ order.date|date:"Y-m-d H:i" }}</td>
+                
+                <!-- Product Name & Brand -->
+                <td>
+                    {% for item in order.details.all %}
+                        {{ item.product_name }} ({{ item.brand }})<br>
+                    {% endfor %}
+                </td>
+
+                <!-- Total Quantity -->
+                <td>{{ order.total_quantity }}</td>
+
+                <!-- Status + Button -->
+                <td>
+                    {{ order.status }}
+                    {% if order.status == 'Pending' %}
+                        <form method="POST" action="{% url 'mark_order_arrived' order.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success mt-2">Mark as Arrived</button>
+                        </form>
+                    {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5">No Purchase Orders Found</td>
+                <td colspan="6">No Purchase Orders Found</td>
             </tr>
             {% endfor %}
         </tbody>

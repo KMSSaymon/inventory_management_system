@@ -5,6 +5,9 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from .models import CustomUser
 from .models import Supplier
+from .models import Employee
+from .models import CustomerOrder, Customer
+
 
 # User Signup Form
 class SignUpForm(UserCreationForm):
@@ -18,7 +21,7 @@ class SignUpForm(UserCreationForm):
 class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
-        fields = ['name', 'brand', 'category', 'supplier', 'quantity', 'purchasing_price', 'selling_price', 'image']
+        fields = ['name', 'brand', 'category', 'supplier', 'quantity', 'purchasing_price', 'selling_price', 'image','unit_size', 'stock']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'brand': forms.TextInput(attrs={'class': 'form-control'}),
@@ -28,6 +31,8 @@ class ProductForm(forms.ModelForm):
             'purchasing_price': forms.NumberInput(attrs={'class': 'form-control'}),
             'selling_price': forms.NumberInput(attrs={'class': 'form-control'}),
             'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'unit_size': forms.TextInput(attrs={'class': 'form-control'}),  # ✅ Add this
+            'stock': forms.NumberInput(attrs={'class': 'form-control'}),    # ✅ Add this
         }
 
 # Purchase Order Form
@@ -92,4 +97,9 @@ class SupplierForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+class EmployeeForm(forms.ModelForm):
+    class Meta:
+        model = Employee
+        fields = '__all__'
 

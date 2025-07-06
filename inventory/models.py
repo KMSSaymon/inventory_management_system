@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -34,6 +35,7 @@ class Product(models.Model):
     quantity = models.IntegerField()
     purchasing_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     selling_price = models.DecimalField(max_digits=10,decimal_places=2,default=0.0)
+    unit_size     = models.CharField(max_length=50, default='', help_text="e.g. 500 ml bottle")
     image = models.ImageField(upload_to='product_images/',null=True,blank=True) 
     stock = models.PositiveIntegerField(default=0) 
 
@@ -132,27 +134,18 @@ class Purchase(models.Model):
     def __str__(self):
         return f"{self.customer.name} - {self.product.name}"
     
-class Sale(models.Model):
-    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Sale #{self.id} - {self.customer.name}"
 
 
-class SaleDetail(models.Model):
-    sale = models.ForeignKey(Sale, on_delete=models.CASCADE)
-    product = models.ForeignKey('Product', on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)  # Unit price at time of sale
-
-    def __str__(self):
-        return f"{self.product.name} x {self.quantity} (Sale #{self.sale.id})"
     
 class PurchaseOrder(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Arrived', 'Arrived'),
+    ]
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True)
     date = models.DateTimeField(auto_now_add=True)
-    ordered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    ordered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
 
     class Meta:
         db_table = 'inventory_purchase_order'
@@ -160,10 +153,23 @@ class PurchaseOrder(models.Model):
     def __str__(self):
         return f"PO #{self.id} - {self.supplier.name}"
 
+    def total_quantity(self):
+        return sum(detail.quantity for detail in self.details.all())
+
+
 
 class PurchaseOrderDetail(models.Model):
     order = models.ForeignKey('PurchaseOrder', on_delete=models.CASCADE, related_name='details')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
+
+    # Temporary fields for product info (filled during order creation)
+    product_name = models.CharField(max_length=100)
+    brand = models.CharField(max_length=100)
+    category_name = models.CharField(max_length=100)
+    unit_size = models.CharField(max_length=50, default='', blank=True)
+    selling_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    image = models.ImageField(upload_to='product_images/', null=True, blank=True)
+
     quantity = models.PositiveIntegerField()
     price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -171,7 +177,8 @@ class PurchaseOrderDetail(models.Model):
         db_table = 'inventory_purchase_order_detail'
 
     def __str__(self):
-        return f"{self.product.name} x {self.quantity} (PO #{self.order.id})"
+        return f"{self.product_name} x {self.quantity} (PO #{self.order.id})"
+
 
 
 class CustomerOrder(models.Model):
@@ -194,5 +201,32 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.username
 
+class Sell(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True)
+    sell_date = models.DateTimeField(auto_now_add=True)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    class Meta:
+        db_table = 'inventory_sell'
+
+    def __str__(self):
+        return f"Sell #{self.id} - {self.customer.name} - {self.sell_date.strftime('%Y-%m-%d')}"
+
+
+class SellItem(models.Model):
+    sell = models.ForeignKey(Sell, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
+    quantity = models.PositiveIntegerField()
+    price_per_unit = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'inventory_sell_item'
+
+    def subtotal(self):
+        return self.quantity * self.price_per_unit
+
+    def __str__(self):
+        return f"{self.product.name} x {self.quantity}"
 
 

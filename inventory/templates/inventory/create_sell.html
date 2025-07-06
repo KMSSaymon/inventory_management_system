@@ -1,0 +1,124 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+
+{% block title %}Create Sell{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">🛒 Create Sell</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- Customer Info -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="customer_name">Customer Name:</label>
+            <input type="text" name="customer_name" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+            <label for="customer_phone">Customer Phone:</label>
+            <input type="text" name="customer_phone" class="form-control" required>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Product Entries -->
+    <div id="product-container">
+        <div class="row mb-2 product-row">
+            <div class="col-md-4">
+                <input list="product-list" name="product_name[]" class="form-control" placeholder="Product Name" onchange="autoFillPrice(this)">
+                <input type="hidden" name="product_id[]">
+            </div>
+            <div class="col-md-2">
+                <input type="number" name="quantity[]" class="form-control" placeholder="Quantity" oninput="updateSubtotal(this)">
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="unit_price[]" class="form-control" placeholder="Unit Price" oninput="updateSubtotal(this)">
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control subtotal" readonly placeholder="Subtotal">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-danger" onclick="removeRow(this)">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product List -->
+    <datalist id="product-list">
+        {% for product in products %}
+            <option data-id="{{ product.id }}" data-price="{{ product.selling_price }}" value="{{ product.name }}"></option>
+        {% endfor %}
+    </datalist>
+
+    <button type="button" class="btn btn-secondary my-3" onclick="addProductRow()">+ Add Product</button>
+
+    <!-- Discount + Total -->
+    <div class="mb-3">
+        <label>Discount:</label>
+        <input type="number" name="discount" class="form-control" id="discountInput" value="0" oninput="updateTotal()">
+    </div>
+
+    <div class="mb-3">
+        <label>Total Price:</label>
+        <input type="text" name="total_price" class="form-control" id="totalInput" readonly>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save & Generate Invoice</button>
+</form>
+
+<!-- Scripts -->
+<script>
+function autoFillPrice(input) {
+    const datalist = document.getElementById('product-list');
+    const options = datalist.options;
+    const value = input.value;
+
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].value === value) {
+            const price = options[i].dataset.price;
+            const id = options[i].dataset.id;
+            const row = input.closest('.product-row');
+
+            row.querySelector('[name="unit_price[]"]').value = price || '';
+            row.querySelector('[name="product_id[]"]').value = id || '';
+            updateSubtotal(input);
+            break;
+        }
+    }
+}
+
+function updateSubtotal(element) {
+    const row = element.closest('.product-row');
+    const price = parseFloat(row.querySelector('[name="unit_price[]"]').value) || 0;
+    const qty = parseInt(row.querySelector('[name="quantity[]"]').value) || 0;
+    row.querySelector('.subtotal').value = (price * qty).toFixed(2);
+    updateTotal();
+}
+
+function updateTotal() {
+    let total = 0;
+    document.querySelectorAll('.subtotal').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+    document.getElementById('totalInput').value = (total - discount).toFixed(2);
+}
+
+function addProductRow() {
+    const container = document.getElementById('product-container');
+    const newRow = container.firstElementChild.cloneNode(true);
+    newRow.querySelectorAll('input').forEach(el => el.value = '');
+    container.appendChild(newRow);
+}
+
+function removeRow(button) {
+    const container = document.getElementById('product-container');
+    if (container.children.length > 1) {
+        button.closest('.product-row').remove();
+        updateTotal();
+    }
+}
+</script>
+{% endblock %}
